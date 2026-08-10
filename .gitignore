@@ -1,0 +1,83 @@
+# ==========================================================
+# Simple RIXS — allowlist
+# Everything is ignored by default; only the lines starting
+# with ! are published to GitHub.
+# ==========================================================
+
+# --- This ignores everything except what is listed below ---
+*
+
+# --- Repo essentials ---
+!.gitignore
+!README.md
+!LICENSE
+!requirements.txt
+
+# --- Entry point and core ---
+!Simple_RIXS.py
+!simple_RIXS_main_logic.py
+!main_GUI_script.py
+!parameter_scripts.py
+
+# --- Input / file information ---
+!input_raw_data_information_script.py
+!input_incoming_energy_script.py
+!input_energy_per_channel_script.py
+!input_file_names_manually_script.py
+!input_veritas_file_information_script.py
+!input_spring_8_file_information_script.py
+!input_species_XAS_file_information_script.py
+
+# --- Elastic peak ---
+!find_elastic_peak_center.py
+!find_elastic_peak_center_spring_8.py
+!find_elastic_peak_center_galaxies.py
+
+# --- Treatment: RIXS ---
+!make_treated_RIXS_script_2.py
+!make_treated_RIXS_script_from_treated_data.py
+!make_treated_veritas_RIXS_script.py
+!make_treated_species_RIXS_script.py
+!make_treated_spring_8_RIXS_script.py
+!make_treated_galaxies_RIXS_script.py
+!veritas_time_resolved_RIXS_script.py
+
+# --- Treatment: XAS / PFY ---
+!make_treated_XAS_script.py
+!make_treated_XAS_script_for_species.py
+!make_treated_XAS_script_for_veritas.py
+!make_PFY_spectra_from_several_treated_files.py
+
+# --- Selection ---
+!select_treated_file.py
+!select_multiple_treated_files.py
+!select_multiple_treated_files_to_integrate.py
+!select_treated_files_to_subtract.py
+!select_PFY_region.py
+!select_integration_region.py
+!select_integration_region_XAS.py
+!select_detector_range_galaxies.py
+
+# --- Waterfall / combining ---
+!add_treated_files_to_waterfall.py
+!add_multiple_RIXS_spectra_to_waterfall.py
+!add_multiple_XAS_to_waterfall.py
+!add_multiple_treated_intensity_lines.py
+!add_RIXS_map_intensities.py
+!integrate_and_add_multiple_RIXS_spectra_to_waterfall.py
+
+# --- Subtraction ---
+!subtract_treated_files_script_2.py
+!subtract_treated_RIXS_maps_script.py
+!plot_subtracted_rixs_map_script.py
+
+# --- Plotting / viewing ---
+!plot_treated_spectra.py
+!view_treated_plot_script.py
+!is_view_roots_or_input_txt_GUI_script.py
+!get_parameters_from_selected_treated_file_script.py
+
+# --- Example data ---
+# !examples/
+# !examples/*.py
+# !examples/*.h5
