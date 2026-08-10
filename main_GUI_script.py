@@ -50,17 +50,17 @@ class MainWindow(QMainWindow):
 
         self.vbox = QVBoxLayout()
 
-        Simple_RIXS_logo_layout = QHBoxLayout()
-        Simple_RIXS_logo_layout.addStretch(1)
-        Simple_RIXS_logo_label =QLabel()
-        logo_folder = 'Simple_RIXS_logo'
-        logo_file = 'Simple_RIXS_logo_final.png'
-        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), logo_folder, logo_file)
-        Simple_RIXS_logo = QPixmap(logo_path)        
-        Simple_RIXS_logo_label.setPixmap(Simple_RIXS_logo)
-        Simple_RIXS_logo_layout.addWidget(Simple_RIXS_logo_label)
-        Simple_RIXS_logo_layout.addStretch(1)
-        self.vbox.addLayout(Simple_RIXS_logo_layout)
+        # Simple_RIXS_logo_layout = QHBoxLayout()
+        # Simple_RIXS_logo_layout.addStretch(1)
+        # Simple_RIXS_logo_label =QLabel()
+        # logo_folder = 'Simple_RIXS_logo'
+        # logo_file = 'Simple_RIXS_logo_final.png'
+        # logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), logo_folder, logo_file)
+        # Simple_RIXS_logo = QPixmap(logo_path)        
+        # Simple_RIXS_logo_label.setPixmap(Simple_RIXS_logo)
+        # Simple_RIXS_logo_layout.addWidget(Simple_RIXS_logo_label)
+        # Simple_RIXS_logo_layout.addStretch(1)
+        # self.vbox.addLayout(Simple_RIXS_logo_layout)
         #vbox.setSpacing(10)
         #vbox.setSizeConstraint(QLayout.SetFixedSize)
 
