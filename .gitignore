@@ -77,6 +77,19 @@
 !is_view_roots_or_input_txt_GUI_script.py
 !get_parameters_from_selected_treated_file_script.py
 
+# --- Helper files ---
+!iteratable_number_to_float_script.py
+!iteratable_number_to_int_script.py
+!get_single_spectrum_h5_or_txt_file_scripts.py
+!find_elastic_peak_maximum_script.py
+!adjust_excitation_energy_for_pcolormesh_plot_script.py
+!create_complete_file_location_for_treated_data.py
+!create_complete_file_location_view_roots_or_txt_script.py
+!get_treated_rixs_data_script.py
+!get_treated_XAS_data_script.py
+!smoothing_scripts.py
+!fit_background_to_XAS_data_script.py
+
 # --- Example data ---
 # !examples/
 # !examples/*.py
