@@ -973,13 +973,19 @@ class MainWindow(QMainWindow):
             peak_channel_center=0
             sum_of_intensity_weight= 0
             highest_intensity, highest_intensity_channel = find_elastic_peak_maximum_script.find_elastic_peak_maximum(parameters, y_values, round(approximate_channel_per_energy*(incoming_energy_array[array_index] - incoming_energy_array[0]) + int(parameters["approximate_channel_of_first_elastic_peak"])))
+            n_channels = len(y_values)
             if parameters["is_use_converging_weighted_squared_peak_center_finder"]:
                 previous_elastic_peak_center_channel = highest_intensity_channel
                 condition = True
+                iteration_count = 0
                 while condition:
+                    iteration_count += 1
+                    if iteration_count >= 100:
+                        condition = False
+                        break
                     peak_channel_center=0
                     sum_of_intensity_weight= 0
-                    for channel in range(previous_elastic_peak_center_channel - channels_above_and_below_elastic_to_fit, previous_elastic_peak_center_channel + channels_above_and_below_elastic_to_fit +1):
+                    for channel in range(max(0, previous_elastic_peak_center_channel - channels_above_and_below_elastic_to_fit), min(n_channels, previous_elastic_peak_center_channel + channels_above_and_below_elastic_to_fit + 1)):
                         peak_channel_center+= ((y_values[channel])**2)*channel
                         sum_of_intensity_weight+= (y_values[channel])**2
                     peak_channel_center = peak_channel_center/sum_of_intensity_weight
@@ -993,10 +999,15 @@ class MainWindow(QMainWindow):
             elif parameters["is_use_converging_weighted_peak_center_finder"]:
                 previous_elastic_peak_center_channel = highest_intensity_channel
                 condition = True
+                iteration_count = 0
                 while condition:
+                    iteration_count += 1
+                    if iteration_count >= 100:
+                        condition = False
+                        break
                     peak_channel_center=0
                     sum_of_intensity_weight= 0
-                    for channel in range(previous_elastic_peak_center_channel - channels_above_and_below_elastic_to_fit, previous_elastic_peak_center_channel + channels_above_and_below_elastic_to_fit +1):
+                    for channel in range(max(0, previous_elastic_peak_center_channel - channels_above_and_below_elastic_to_fit), min(n_channels, previous_elastic_peak_center_channel + channels_above_and_below_elastic_to_fit + 1)):
                         peak_channel_center+= y_values[channel]*channel
                         sum_of_intensity_weight+= y_values[channel]
                     peak_channel_center = peak_channel_center/sum_of_intensity_weight
@@ -1008,34 +1019,46 @@ class MainWindow(QMainWindow):
                         condition = False
             elif parameters["is_weighted_elastic_peak_fit"]:
                 #highest_intensity_channel= highest_intensity_channel +1
-                for channel in range(highest_intensity_channel - channels_above_and_below_elastic_to_fit, highest_intensity_channel + channels_above_and_below_elastic_to_fit +1):
+                for channel in range(max(0, highest_intensity_channel - channels_above_and_below_elastic_to_fit), min(n_channels, highest_intensity_channel + channels_above_and_below_elastic_to_fit + 1)):
                     peak_channel_center+= y_values[channel]*channel
                     sum_of_intensity_weight+= y_values[channel]
                 peak_channel_center = peak_channel_center/sum_of_intensity_weight
                 intensity_weights_array[array_index]=sum_of_intensity_weight
             elif parameters["is_full_gaussian_elastic_peak_fit"]:
-                x_values_gaussian= np.linspace(highest_intensity_channel - channels_above_and_below_elastic_to_fit, highest_intensity_channel + channels_above_and_below_elastic_to_fit, 2*channels_above_and_below_elastic_to_fit)
-                y_values_gaussian= y_values[highest_intensity_channel - channels_above_and_below_elastic_to_fit : highest_intensity_channel + channels_above_and_below_elastic_to_fit]
-                mu_guess = highest_intensity_channel
-                sigma_guess = (x_values_gaussian[0] - x_values_gaussian[-1]) / 8
-                A_guess = highest_intensity
-                initial_guesses = [A_guess, mu_guess, sigma_guess]
-                gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_gaussian, y_values_gaussian, p0=initial_guesses)
-                gaussian_fitted_y_values= self.gaussian(x_values_gaussian, *gaussian_parameters)
-                peak_channel_center= highest_intensity_channel - channels_above_and_below_elastic_to_fit + np.argmax(gaussian_fitted_y_values)
-                intensity_weights_array[array_index]= max(gaussian_fitted_y_values)
+                try:
+                    x_values_gaussian= np.linspace(highest_intensity_channel - channels_above_and_below_elastic_to_fit, highest_intensity_channel + channels_above_and_below_elastic_to_fit, 2*channels_above_and_below_elastic_to_fit)
+                    y_values_gaussian= y_values[highest_intensity_channel - channels_above_and_below_elastic_to_fit : highest_intensity_channel + channels_above_and_below_elastic_to_fit]
+                    mu_guess = highest_intensity_channel
+                    sigma_guess = (x_values_gaussian[0] - x_values_gaussian[-1]) / 8
+                    A_guess = highest_intensity
+                    initial_guesses = [A_guess, mu_guess, sigma_guess]
+                    if len(x_values_gaussian) < 3 or len(x_values_gaussian) != len(y_values_gaussian):
+                        raise RuntimeError("Too few or mismatched data points for Gaussian fit")
+                    gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_gaussian, y_values_gaussian, p0=initial_guesses)
+                    gaussian_fitted_y_values= self.gaussian(x_values_gaussian, *gaussian_parameters)
+                    peak_channel_center= highest_intensity_channel - channels_above_and_below_elastic_to_fit + np.argmax(gaussian_fitted_y_values)
+                    intensity_weights_array[array_index]= max(gaussian_fitted_y_values)
+                except (RuntimeError, TypeError, ValueError):
+                    print("Gaussian fit could not be made for spectra: ", array_index)
+                    peak_channel_center = highest_intensity_channel
             elif parameters["is_half_gaussian_elastic_peak_fit"]:
-                x_values_gaussian= np.linspace(highest_intensity_channel, highest_intensity_channel + channels_above_and_below_elastic_to_fit, channels_above_and_below_elastic_to_fit )
-                y_values_gaussian= y_values[highest_intensity_channel:highest_intensity_channel + channels_above_and_below_elastic_to_fit]
-                #mu_guess = highest_intensity_channel
-                #sigma_guess = (x_values_gaussian[0] - x_values_gaussian[-1]) / 4
-                #A_guess = highest_intensity / (np.sqrt(2 * np.pi) * sigma_guess)
-                #initial_guesses = [A_guess, mu_guess, sigma_guess]
-                gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_gaussian, y_values_gaussian)
-                x_values_full_gaussian=np.linspace(highest_intensity_channel - channels_above_and_below_elastic_to_fit, highest_intensity_channel + channels_above_and_below_elastic_to_fit, 2*channels_above_and_below_elastic_to_fit)
-                gaussian_fitted_y_values= self.gaussian(x_values_full_gaussian, *gaussian_parameters)
-                peak_channel_center= highest_intensity_channel - channels_above_and_below_elastic_to_fit + np.argmax(gaussian_fitted_y_values)
-                intensity_weights_array[array_index]= max(gaussian_fitted_y_values)
+                try:
+                    x_values_gaussian= np.linspace(highest_intensity_channel, highest_intensity_channel + channels_above_and_below_elastic_to_fit, channels_above_and_below_elastic_to_fit )
+                    y_values_gaussian= y_values[highest_intensity_channel:highest_intensity_channel + channels_above_and_below_elastic_to_fit]
+                    #mu_guess = highest_intensity_channel
+                    #sigma_guess = (x_values_gaussian[0] - x_values_gaussian[-1]) / 4
+                    #A_guess = highest_intensity / (np.sqrt(2 * np.pi) * sigma_guess)
+                    #initial_guesses = [A_guess, mu_guess, sigma_guess]
+                    if len(x_values_gaussian) < 3 or len(x_values_gaussian) != len(y_values_gaussian):
+                        raise RuntimeError("Too few or mismatched data points for Gaussian fit")
+                    gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_gaussian, y_values_gaussian)
+                    x_values_full_gaussian=np.linspace(highest_intensity_channel - channels_above_and_below_elastic_to_fit, highest_intensity_channel + channels_above_and_below_elastic_to_fit, 2*channels_above_and_below_elastic_to_fit)
+                    gaussian_fitted_y_values= self.gaussian(x_values_full_gaussian, *gaussian_parameters)
+                    peak_channel_center= highest_intensity_channel - channels_above_and_below_elastic_to_fit + np.argmax(gaussian_fitted_y_values)
+                    intensity_weights_array[array_index]= max(gaussian_fitted_y_values)
+                except (RuntimeError, TypeError, ValueError):
+                    print("Gaussian fit could not be made for spectra: ", array_index)
+                    peak_channel_center = highest_intensity_channel
 
             array_index+=1
             elastic_peak_center_array.append(round(peak_channel_center))

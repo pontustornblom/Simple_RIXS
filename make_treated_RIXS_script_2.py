@@ -128,9 +128,10 @@ class MainWindow(QMainWindow):
         self.vbox.addLayout(self.create_gui_item("is_plot_intensity_normalize_to_value_array_0", "Would you like to normalize the plot by setting the highest intensity to a certain value? ", "q_check_box", [""]))
         self.vbox.addLayout(self.create_gui_item("plot_value_to_normalize_highest_intensity_array_0", "What value do you want to set the highest intensity to? ", "q_line_edit", [""]))
         
+        self.vbox.addLayout(self.create_gui_item("is_second_order_measurement", "Is this measurement in second order? \n(Checking this will multiply the energy axis by two and cause the elastic peak to be found at the incident energy)", "q_check_box", [""]))
         self.vbox.addLayout(self.create_gui_item("is_automatically_adjust_peak_to_correct_energy", "Would you like the program to automatically shift the elastic peak along the x-axis to its correct energy for each spectra?\n(OBS! Your manual shift will be applied after the automatical shift if you have that box checked)\nThis is currently using a squared weighted fit to the elastic peak followed by a gaussian \nfit that both are fitted to the values of the elastic part of the elastic peak. ", "q_check_box", [""]))
         self.vbox.addLayout(self.create_gui_item("energy_above_and_below_to_calculate_elastic_peak_weights", "Energy above and below the supposed elastic peak position to find the enastic peak (the highest peak): ", "q_line_edit", [""]))
-        self.vbox.addLayout(self.create_gui_item("degree_of_energy_per_channel_polynomial", "What degree polynomial do you want to fit the elastic peaks to? (Set to 1 for linear) ", "q_line_edit", [""]))        
+        self.vbox.addLayout(self.create_gui_item("degree_of_energy_per_channel_polynomial", "What degree polynomial do you want to fit the elastic peaks to? (Set to 1 for linear) ", "q_line_edit", [""]))
 
         self.vbox.addLayout(self.create_gui_item("is_manual_shift_elastic_peak", "Would you like to manually shift the elastic peak along the x-axis? ", "q_check_box", [""]))
         iteratable_file_number_array = self.get_iteratable_file_number_array(self.parameters)
@@ -1182,26 +1183,32 @@ class MainWindow(QMainWindow):
            
             #print(np.abs(array_of_x_value_arrays[spectra_index] - 0).argmin())
 
+            n_channels_p1 = len(array_of_x_value_arrays[spectra_index])
             condition = True
+            iteration_count_p1 = 0
             while condition:
+                iteration_count_p1 += 1
+                if iteration_count_p1 >= 100:
+                    condition = False
+                    break
                 peak_channel_center = 0
                 peak_energy_center = 0
                 sum_of_intensity_weight = 0
-                
+
                 channels_above_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] - energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
                 channels_below_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] + energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
-                for channel in range(previous_elastic_peak_channel_center - channels_below_elastic_to_fit, previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1):
+                for channel in range(max(0, previous_elastic_peak_channel_center - channels_below_elastic_to_fit), min(n_channels_p1, previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1)):
                     #peak_channel_center+= array_of_intensity_arrays[spectra_index][channel] * channel
                     #sum_of_intensity_weight+= array_of_intensity_arrays[spectra_index][channel]
                     #peak_channel_center+= ((array_of_intensity_arrays[spectra_index][channel]) ** 2 ) * channel
                     peak_energy_center+= ((array_of_intensity_arrays[spectra_index][channel]) ** 2 ) * array_of_x_value_arrays[spectra_index][channel]
                     sum_of_intensity_weight+= (array_of_intensity_arrays[spectra_index][channel]) ** 2
-                
+
                 peak_energy_center = peak_energy_center/sum_of_intensity_weight
                 #intensity_weights_array[array_index]=sum_of_intensity_weight
                 peak_channel_center = np.abs(array_of_x_value_arrays[spectra_index] - peak_energy_center).argmin()
                 change_in_peak_channel_center = previous_elastic_peak_channel_center - peak_channel_center
-                
+
                 previous_elastic_peak_channel_center = round(peak_channel_center)
                 #if abs(array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]) <= elastic_energy_mismatch_tolerance:
                 #    array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] - peak_center_in_energy
@@ -1287,33 +1294,39 @@ class MainWindow(QMainWindow):
             channels_below_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] + energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
             rough_half_elastic_peak_intenisty =  np.nanmin(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center: previous_elastic_peak_channel_center + 10 * channels_above_elastic_to_fit + 1 ]) + (np.max(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1]) - np.nanmin(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center: previous_elastic_peak_channel_center + 10 * channels_above_elastic_to_fit + 1 ])) / 2
             
+            n_channels_p2 = len(array_of_x_value_arrays[spectra_index])
             half_channel_width_of_elastic_peak = np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center : ] - rough_half_elastic_peak_intenisty).argmin()
             if half_channel_width_of_elastic_peak <= 1:
                 half_channel_width_of_elastic_peak = 2
-            channel_of_half_elastic_peak_width_above_elastic = previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak
+            channel_of_half_elastic_peak_width_above_elastic = min(previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak, n_channels_p2 - 1)
             half_energy_width_of_elastic_peak = array_of_x_value_arrays[spectra_index][channel_of_half_elastic_peak_width_above_elastic] - array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]
-            
+
             half_energy_width_of_elastic_peak = min(half_energy_width_of_elastic_peak,
                                             energy_above_and_below_elastic_peak_to_fit_elastic_peak)
 
             condition = True
+            iteration_count_p2 = 0
             while condition:
+                iteration_count_p2 += 1
+                if iteration_count_p2 >= 100:
+                    condition = False
+                    break
                 peak_channel_center = 0
                 peak_energy_center = 0
                 sum_of_intensity_weight = 0
 
                 #channel_of_elastic_peak_maximum = previous_elastic_peak_channel_center - channels_above_elastic_to_fit + np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1] - np.max(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1])).argmin()
-                
-                
+
+
                 channels_above_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] - half_energy_width_of_elastic_peak).argmin() )
                 channels_below_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] + half_energy_width_of_elastic_peak).argmin() )
-                for channel in range(previous_elastic_peak_channel_center - channels_below_elastic_to_fit, previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1):
+                for channel in range(max(0, previous_elastic_peak_channel_center - channels_below_elastic_to_fit), min(n_channels_p2, previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1)):
                     #peak_channel_center+= array_of_intensity_arrays[spectra_index][channel] * channel
                     #sum_of_intensity_weight+= array_of_intensity_arrays[spectra_index][channel]
                     #peak_channel_center+= ((array_of_intensity_arrays[spectra_index][channel]) ** 2 ) * channel
                     peak_energy_center+= ((array_of_intensity_arrays[spectra_index][channel]) ** 2 ) * array_of_x_value_arrays[spectra_index][channel]
                     sum_of_intensity_weight+= (array_of_intensity_arrays[spectra_index][channel]) ** 2
-                
+
                 peak_energy_center = peak_energy_center/sum_of_intensity_weight
                 #intensity_weights_array[array_index]=sum_of_intensity_weight
                 peak_channel_center = np.abs(array_of_x_value_arrays[spectra_index] - peak_energy_center).argmin()
@@ -1321,7 +1334,7 @@ class MainWindow(QMainWindow):
 
                 print(spectra_index)
                 print(change_in_peak_channel_center)
-                
+
                 previous_elastic_peak_channel_center = round(peak_channel_center)
                 #if abs(array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]) <= elastic_energy_mismatch_tolerance:
                 #    array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] - peak_center_in_energy
@@ -1331,14 +1344,14 @@ class MainWindow(QMainWindow):
                 half_channel_width_of_elastic_peak = np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center : ] - rough_half_elastic_peak_intenisty).argmin()
                 if half_channel_width_of_elastic_peak <= 1:
                     half_channel_width_of_elastic_peak = 2
-                channel_of_half_elastic_peak_width_above_elastic = previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak
+                channel_of_half_elastic_peak_width_above_elastic = min(previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak, n_channels_p2 - 1)
                 half_energy_width_of_elastic_peak = array_of_x_value_arrays[spectra_index][channel_of_half_elastic_peak_width_above_elastic] - array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]
-            
+
                 half_energy_width_of_elastic_peak = min(half_energy_width_of_elastic_peak,
                                             energy_above_and_below_elastic_peak_to_fit_elastic_peak)
-                
+
                 if abs(change_in_peak_channel_center) <= 0.5:
-                    
+
                     #array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] - array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]
                     condition = False
 
@@ -1364,10 +1377,11 @@ class MainWindow(QMainWindow):
                 channels_below_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] + energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
                 rough_half_elastic_peak_intenisty = np.nanmin(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center: previous_elastic_peak_channel_center + 10*channels_above_elastic_to_fit + 1 ]) + (np.max(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1]) - np.nanmin(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center: previous_elastic_peak_channel_center + 10*channels_above_elastic_to_fit + 1 ])) / 2
                 #channel_of_elastic_peak_maximum = previous_elastic_peak_channel_center - channels_above_elastic_to_fit + np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1] - np.max(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1])).argmin()
+                channels_above_elastic_to_fit = max(1, channels_above_elastic_to_fit)
                 half_channel_width_of_elastic_peak = np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center : previous_elastic_peak_channel_center + 10*channels_above_elastic_to_fit] - rough_half_elastic_peak_intenisty).argmin()
                 if half_channel_width_of_elastic_peak <= 0:
                     half_channel_width_of_elastic_peak = 1
-                channel_of_half_elastic_peak_width_above_elastic = previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak
+                channel_of_half_elastic_peak_width_above_elastic = min(previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak, len(array_of_x_value_arrays[spectra_index]) - 1)
                 half_energy_width_of_elastic_peak = array_of_x_value_arrays[spectra_index][channel_of_half_elastic_peak_width_above_elastic] - array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]
                 half_energy_width_of_elastic_peak = min(half_energy_width_of_elastic_peak,
                                             1.5*energy_above_and_below_elastic_peak_to_fit_elastic_peak)
@@ -1384,6 +1398,8 @@ class MainWindow(QMainWindow):
                 #sigma_guess = (x_values_gaussian[0] - x_values_gaussian[-1]) / 8
                 A_guess = array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center]
                 initial_guesses = [A_guess, mu_guess, sigma_guess, offset_guess]
+                if len(x_values_gaussian) < 4:
+                    raise RuntimeError("Too few data points for Gaussian fit")
                 gaussian_parameters, covariance_matrix = curve_fit(self.gaussian, x_values_gaussian, y_values_gaussian, p0=initial_guesses)
                 standard_deviation_of_fitted_parameters = np.sqrt(np.diag(covariance_matrix))
                 #for name, val, err in zip(['Gaussain max intenisty','Gaussain mean value','Gaussian sigma','Gaussain offset'], gaussian_parameters, standard_deviation_of_fitted_parameters):
@@ -1421,7 +1437,7 @@ class MainWindow(QMainWindow):
                 energy_shift = gaussian_parameters[1]
                 array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] - energy_shift
                 #print("energy_shift = ", energy_shift)
-            except RuntimeError:
+            except (RuntimeError, TypeError, ValueError):
                 print("Gaussian fit could not be made for spectra: ", spectra_index)
 
         if is_original_x_values_energy_loss == False:
@@ -1433,12 +1449,216 @@ class MainWindow(QMainWindow):
         #    array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] + (incoming_energy_array[spectra_index] - array_of_x_value_arrays[spectra_index][elastic_peak_center_array[spectra_index]])
         
         return array_of_x_value_arrays
-    
+
+    def move_elastic_peak_center_to_correct_energy_with_gaussian_and_average_over_all_energies(self, array_of_intensity_arrays, incoming_energy_array, array_of_x_value_arrays):
+        is_original_x_values_energy_loss = self.nested_array_contains_negative_floats(array_of_x_value_arrays)
+
+        original_array_of_x_value_arrays = np.empty(len(array_of_x_value_arrays), dtype=object)
+        for spectra_index in range(len(array_of_intensity_arrays)):
+            original_array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index].copy()
+
+        gaussian_mu_sigma_per_spectra = np.full(len(array_of_intensity_arrays), np.nan)
+        is_fit_rejected_array         = np.ones(len(array_of_intensity_arrays), dtype=bool)  # default = rejected
+        total_energy_shift_per_spectra = np.zeros(len(array_of_intensity_arrays))
+
+        if is_original_x_values_energy_loss == False:
+            for spectra_index in range(len(array_of_intensity_arrays)):
+                array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] - incoming_energy_array[spectra_index]
+
+        energy_above_and_below_elastic_peak_to_fit_elastic_peak = float(self.parameters["energy_above_and_below_to_calculate_elastic_peak_weights"])
+
+        if True:
+            #aligning the elastic peaks with the weighted intensity again but with a smaller channel range for finer adjustment:
+            for spectra_index in range(len(array_of_intensity_arrays)):
+                previous_elastic_peak_channel_center = np.abs(array_of_x_value_arrays[spectra_index] - 0).argmin()
+
+                channels_above_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] - energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
+                channels_below_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] + energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
+
+                #Get half_channel_width_of_elastic_peak first from the maximum peak intensity to avoid errors.
+                previous_elastic_peak_channel_center = previous_elastic_peak_channel_center - channels_above_elastic_to_fit + np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1] - np.max(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1]) ).argmin()
+
+                energy_above_and_below_elastic_peak_to_fit_elastic_peak = float(self.parameters["energy_above_and_below_to_calculate_elastic_peak_weights"])
+                channels_above_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] - energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
+                channels_below_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] + energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
+                rough_half_elastic_peak_intenisty = np.nanmin(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center: previous_elastic_peak_channel_center + 10 * channels_above_elastic_to_fit + 1 ]) + (np.max(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1]) - np.nanmin(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center: previous_elastic_peak_channel_center + 10 * channels_above_elastic_to_fit + 1 ])) / 2
+
+                n_channels = len(array_of_x_value_arrays[spectra_index])
+                half_channel_width_of_elastic_peak = np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center : ] - rough_half_elastic_peak_intenisty).argmin()
+                if half_channel_width_of_elastic_peak <= 1:
+                    half_channel_width_of_elastic_peak = 2
+                channel_of_half_elastic_peak_width_above_elastic = min(previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak, n_channels - 1)
+                half_energy_width_of_elastic_peak = array_of_x_value_arrays[spectra_index][channel_of_half_elastic_peak_width_above_elastic] - array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]
+
+                half_energy_width_of_elastic_peak = min(half_energy_width_of_elastic_peak,
+                                                2*energy_above_and_below_elastic_peak_to_fit_elastic_peak)
+
+                condition = True
+                iteration_count = 0
+                while condition:
+                    iteration_count += 1
+                    if iteration_count >= 100:
+                        condition = False
+                        break
+                    peak_channel_center = 0
+                    peak_energy_center = 0
+                    sum_of_intensity_weight = 0
+
+                    channels_above_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] - half_energy_width_of_elastic_peak).argmin() )
+                    channels_below_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] + half_energy_width_of_elastic_peak).argmin() )
+                    for channel in range(max(0, previous_elastic_peak_channel_center - channels_below_elastic_to_fit), min(n_channels, previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1)):
+                        peak_energy_center += ((array_of_intensity_arrays[spectra_index][channel]) ** 2 ) * array_of_x_value_arrays[spectra_index][channel]
+                        sum_of_intensity_weight += (array_of_intensity_arrays[spectra_index][channel]) ** 2
+
+                    peak_energy_center = peak_energy_center / sum_of_intensity_weight
+                    peak_channel_center = np.abs(array_of_x_value_arrays[spectra_index] - peak_energy_center).argmin()
+                    change_in_peak_channel_center = previous_elastic_peak_channel_center - peak_channel_center
+
+                    print(spectra_index)
+                    print(change_in_peak_channel_center)
+
+                    previous_elastic_peak_channel_center = round(peak_channel_center)
+                    energy_shift = peak_energy_center
+                    total_energy_shift_per_spectra[spectra_index] += energy_shift
+                    array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] - energy_shift
+
+                    half_channel_width_of_elastic_peak = np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center : ] - rough_half_elastic_peak_intenisty).argmin()
+                    if half_channel_width_of_elastic_peak <= 1:
+                        half_channel_width_of_elastic_peak = 2
+                    channel_of_half_elastic_peak_width_above_elastic = min(previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak, n_channels - 1)
+                    half_energy_width_of_elastic_peak = array_of_x_value_arrays[spectra_index][channel_of_half_elastic_peak_width_above_elastic] - array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]
+
+                    half_energy_width_of_elastic_peak = min(half_energy_width_of_elastic_peak,
+                                                energy_above_and_below_elastic_peak_to_fit_elastic_peak)
+
+                    if abs(change_in_peak_channel_center) <= 0.5:
+                        condition = False
+
+        #Gaussian fit here now that the spectra are somewhat aligned:
+        for spectra_index in range(len(array_of_intensity_arrays)):
+            try:
+                previous_elastic_peak_channel_center = np.abs(array_of_x_value_arrays[spectra_index] - 0).argmin()
+
+                energy_above_and_below_elastic_peak_to_fit_elastic_peak = float(self.parameters["energy_above_and_below_to_calculate_elastic_peak_weights"])
+                channels_above_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] - energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
+                channels_below_elastic_to_fit = np.abs(previous_elastic_peak_channel_center - np.abs(array_of_x_value_arrays[spectra_index] + energy_above_and_below_elastic_peak_to_fit_elastic_peak).argmin() )
+                rough_half_elastic_peak_intenisty = np.nanmin(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center: previous_elastic_peak_channel_center + 10*channels_above_elastic_to_fit + 1 ]) + (np.max(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center - channels_above_elastic_to_fit : previous_elastic_peak_channel_center + channels_above_elastic_to_fit + 1]) - np.nanmin(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center: previous_elastic_peak_channel_center + 10*channels_above_elastic_to_fit + 1 ])) / 2
+                channels_above_elastic_to_fit = max(1, channels_above_elastic_to_fit)
+                half_channel_width_of_elastic_peak = np.abs(array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center : previous_elastic_peak_channel_center + 10*channels_above_elastic_to_fit] - rough_half_elastic_peak_intenisty).argmin()
+                if half_channel_width_of_elastic_peak <= 0:
+                    half_channel_width_of_elastic_peak = 1
+                channel_of_half_elastic_peak_width_above_elastic = min(previous_elastic_peak_channel_center + half_channel_width_of_elastic_peak, len(array_of_x_value_arrays[spectra_index]) - 1)
+                half_energy_width_of_elastic_peak = array_of_x_value_arrays[spectra_index][channel_of_half_elastic_peak_width_above_elastic] - array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]
+                half_energy_width_of_elastic_peak = min(half_energy_width_of_elastic_peak,
+                                            1.5*energy_above_and_below_elastic_peak_to_fit_elastic_peak)
+                FWHM_energy = 2 * half_energy_width_of_elastic_peak
+                quarter_energy_width_of_elastic_peak = half_energy_width_of_elastic_peak / 2
+
+                gaussian_fit_channel_start = np.abs(array_of_x_value_arrays[spectra_index] + quarter_energy_width_of_elastic_peak * 1.05).argmin()
+                gaussian_fit_channel_end = 20 * half_channel_width_of_elastic_peak + previous_elastic_peak_channel_center
+                x_values_gaussian = array_of_x_value_arrays[spectra_index][gaussian_fit_channel_start : gaussian_fit_channel_end + 1]
+                y_values_gaussian = array_of_intensity_arrays[spectra_index][gaussian_fit_channel_start : gaussian_fit_channel_end + 1]
+                sigma_guess = FWHM_energy / 2.35482
+                mu_guess = array_of_x_value_arrays[spectra_index][previous_elastic_peak_channel_center]
+                offset_guess = np.mean(array_of_intensity_arrays[spectra_index][15 * half_channel_width_of_elastic_peak + previous_elastic_peak_channel_center : gaussian_fit_channel_end + 1])
+                A_guess = array_of_intensity_arrays[spectra_index][previous_elastic_peak_channel_center]
+                initial_guesses = [A_guess, mu_guess, sigma_guess, offset_guess]
+                if len(x_values_gaussian) < 4:
+                    raise RuntimeError("Too few data points for Gaussian fit")
+                gaussian_parameters, covariance_matrix = curve_fit(self.gaussian, x_values_gaussian, y_values_gaussian, p0=initial_guesses)
+                standard_deviation_of_fitted_parameters = np.sqrt(np.diag(covariance_matrix))
+                print("Spectra ", spectra_index, " Gaussian mean value:", gaussian_parameters[1], " ± ", standard_deviation_of_fitted_parameters[1])
+
+                gaussian_mu_sigma_per_spectra[spectra_index] = standard_deviation_of_fitted_parameters[1]
+
+                # --- Gaussian fit quality check ---
+                A_fit, mu_fit, sigma_fit, offset_fit = gaussian_parameters
+                sA, smu, s_sigma, s_offset = standard_deviation_of_fitted_parameters
+
+                max_rel_unc_amplitude = 0.5
+                max_rel_unc_center    = 0.5
+                max_rel_unc_width     = 0.5
+
+                fit_rejected = False
+                reject_reason = ""
+
+                if not np.all(np.isfinite(standard_deviation_of_fitted_parameters)):
+                    fit_rejected = True
+                    reject_reason = "non-finite covariance (singular fit)"
+                elif sigma_fit <= 0 or A_fit <= 0:
+                    fit_rejected = True
+                    reject_reason = f"unphysical params (A={A_fit:.3g}, sigma={sigma_fit:.3g})"
+                elif mu_fit < x_values_gaussian.min() or mu_fit > x_values_gaussian.max():
+                    fit_rejected = True
+                    reject_reason = f"mu={mu_fit:.3g} outside fit window"
+                elif abs(sA / A_fit) > max_rel_unc_amplitude:
+                    fit_rejected = True
+                    reject_reason = f"sigma_A/A = {sA/A_fit:.2f} too large"
+                elif abs(smu / sigma_fit) > max_rel_unc_center:
+                    fit_rejected = True
+                    reject_reason = f"sigma_mu/sigma_fit = {smu/abs(sigma_fit):.2f} too large"
+                elif abs(s_sigma / sigma_fit) > max_rel_unc_width:
+                    fit_rejected = True
+                    reject_reason = f"sigma_sigma/sigma_fit = {s_sigma/abs(sigma_fit):.2f} too large"
+
+                if fit_rejected:
+                    print(f"Spectrum {spectra_index}: Gaussian shift OMITTED — {reject_reason}")
+                    is_fit_rejected_array[spectra_index] = True
+                else:
+                    energy_shift = mu_fit
+                    array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] - energy_shift
+                    total_energy_shift_per_spectra[spectra_index] += energy_shift
+                    is_fit_rejected_array[spectra_index] = False
+                    print(f"Spectrum {spectra_index}: Gaussian shift = {energy_shift:.5f} eV applied")
+
+            except (RuntimeError, TypeError, ValueError):
+                print("Gaussian fit could not be made for spectra: ", spectra_index)
+
+        if is_original_x_values_energy_loss == False:
+            for spectra_index in range(len(array_of_intensity_arrays)):
+                array_of_x_value_arrays[spectra_index] = array_of_x_value_arrays[spectra_index] + incoming_energy_array[spectra_index]
+
+        # --- Inverse-variance weighted mean of total per-spectrum shifts ---
+        accepted = (~is_fit_rejected_array
+                    & np.isfinite(gaussian_mu_sigma_per_spectra)
+                    & (gaussian_mu_sigma_per_spectra > 0))
+
+        if np.count_nonzero(accepted) == 0:
+            print("WARNING: no acceptable Gaussian fits — common shift set to 0.")
+            common_shift = 0.0
+            common_shift_unc = np.nan
+        else:
+            shifts  = total_energy_shift_per_spectra[accepted]
+            sigmas  = gaussian_mu_sigma_per_spectra[accepted]
+            weights = 1.0 / sigmas**2
+
+            common_shift     = np.sum(weights * shifts) / np.sum(weights)
+            common_shift_unc = 1.0 / np.sqrt(np.sum(weights))
+
+            n_accepted = len(shifts)
+            if n_accepted > 1:
+                chi2_red = np.sum(weights * (shifts - common_shift)**2) / (n_accepted - 1)
+                print(f"Reduced chi^2 of total shifts about weighted mean: {chi2_red:.2f}")
+                if chi2_red > 1:
+                    common_shift_unc *= np.sqrt(chi2_red)
+                    print(f"  -> uncertainty inflated by sqrt(chi2_red) = {np.sqrt(chi2_red):.2f}")
+
+            print(f"Weighted common shift: {common_shift:.5f} ± {common_shift_unc:.5f} eV "
+                f"(from {n_accepted}/{len(array_of_intensity_arrays)} spectra)")
+
+        # --- Apply the same shift to every original spectrum ---
+        for spectra_index in range(len(array_of_intensity_arrays)):
+            original_array_of_x_value_arrays[spectra_index] = (
+                original_array_of_x_value_arrays[spectra_index] - common_shift
+            )
+
+        return original_array_of_x_value_arrays
+
     def add_intensities_of_same_excitation_energy(self, array_of_x_value_arrays, incoming_energy_array, array_of_intensity_arrays):
-        
+
         if self.parameters["is_automatically_adjust_peak_to_correct_energy"]:
-            array_of_x_value_arrays = self.move_elastic_peak_center_to_correct_energy_with_gaussian(array_of_intensity_arrays, incoming_energy_array, array_of_x_value_arrays)
-        
+            array_of_x_value_arrays = self.move_elastic_peak_center_to_correct_energy_with_gaussian_and_average_over_all_energies(array_of_intensity_arrays, incoming_energy_array, array_of_x_value_arrays)
+
         energy_mismatch_tolerance = float(self.parameters["energy_mismatch_tolerance"])
 
         unique_excitation_energies_list = []
@@ -1611,18 +1831,21 @@ class MainWindow(QMainWindow):
                 array_of_x_value_arrays.append(x_values_array)
             #array_of_x_value_arrays = np.vstack(array_of_x_value_arrays).astype(float)
 
+        if parameters.get("is_second_order_measurement", False):
+            array_of_x_value_arrays = [x_arr * 2 for x_arr in array_of_x_value_arrays]
+
         if parameters["is_set_negative_intensities_to_zero"]:
             for spectra_index in range(len(array_of_intensity_arrays)):
                 smallest_intensity_in_spectra = min(array_of_intensity_arrays[spectra_index])
                 if smallest_intensity_in_spectra < 0:
                     array_of_intensity_arrays[spectra_index] = array_of_intensity_arrays[spectra_index] - smallest_intensity_in_spectra
 
-        
+
         if parameters["is_add_intensities_of_same_excitation_energy"]:
             array_of_x_value_arrays, incoming_energy_array, array_of_intensity_arrays = self.add_intensities_of_same_excitation_energy(array_of_x_value_arrays, incoming_energy_array, array_of_intensity_arrays)
-        
+
         if parameters["is_automatically_adjust_peak_to_correct_energy"]:
-            array_of_x_value_arrays = self.move_elastic_peak_center_to_correct_energy_with_gaussian(array_of_intensity_arrays, incoming_energy_array, array_of_x_value_arrays)
+            array_of_x_value_arrays = self.move_elastic_peak_center_to_correct_energy_with_gaussian_and_average_over_all_energies(array_of_intensity_arrays, incoming_energy_array, array_of_x_value_arrays)
             #array_of_x_value_arrays = self.move_elastic_peak_center_to_correct_energy(array_of_intensity_arrays, incoming_energy_array, array_of_x_value_arrays)
                 #array_of_x_value_arrays = np.vstack(array_of_intensity_arrays).astype(float)
 

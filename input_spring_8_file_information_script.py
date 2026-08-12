@@ -82,6 +82,7 @@ class MainWindow(QMainWindow):
         self.vbox.addLayout(self.create_gui_item("open file location", "Open raw data file location", "q_push_button",  [""]))
 
         if self.parameters["plot_type"]== "Make treated RIXS data from SPring-8 BL27SU":
+            self.vbox.addLayout(self.create_gui_item("is_second_order_measurement", "Is this measurement in second order? \n(Checking this will multiply the energy axis by two and cause the elastic peak to be found at the incident energy)", "q_check_box", [""]))
             self.vbox.addLayout(self.create_gui_item("is_input_file_names_manually", "Would you like to manually input the file names and numbers individually? \nThis is nessesary if your RIXS map is plit up over two different files. ", "q_check_box", [""]))
 
             self.vbox.addLayout(self.create_gui_item("input_file_text_before_file_number", "File name of the RIXS data file after the date information and before the incident energy: ", "q_line_edit", [""]))

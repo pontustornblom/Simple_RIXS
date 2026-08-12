@@ -919,8 +919,14 @@ class MainWindow(QMainWindow):
                 inverse_incoming_energy_array = 1 / incoming_energy_array
                 y_trend_values = np.polyval(coeffs, inverse_incoming_energy_array)
             elif parameters["background_fit_type"] == "Gaussian":
-                gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_fit, y_values_fit)
-                y_trend_values= self.gaussian(incoming_energy_array, *gaussian_parameters)
+                try:
+                    if len(x_values_fit) < 4:
+                        raise RuntimeError("Too few data points for Gaussian background fit")
+                    gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_fit, y_values_fit)
+                    y_trend_values= self.gaussian(incoming_energy_array, *gaussian_parameters)
+                except (RuntimeError, TypeError, ValueError):
+                    print("Gaussian background fit could not be made; skipping background subtraction for this spectrum.")
+                    y_trend_values= np.zeros_like(y_values)
             y_values = y_values - y_trend_values
 
         if parameters["is_approximate_energy_for_normalization_to_zero"]:
@@ -1090,8 +1096,14 @@ class MainWindow(QMainWindow):
                     inverse_incoming_energy_array = 1 / incoming_energy_array
                     y_trend_values = np.polyval(coeffs, inverse_incoming_energy_array)
                 elif parameters["background_fit_type_array"][array_index] == "Gaussian":
-                    gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_fit, y_values_fit)
-                    y_trend_values= self.gaussian(incoming_energy_array, *gaussian_parameters)
+                    try:
+                        if len(x_values_fit) < 4:
+                            raise RuntimeError("Too few data points for Gaussian background fit")
+                        gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_fit, y_values_fit)
+                        y_trend_values= self.gaussian(incoming_energy_array, *gaussian_parameters)
+                    except (RuntimeError, TypeError, ValueError):
+                        print("Gaussian background fit could not be made; skipping background subtraction for this spectrum.")
+                        y_trend_values= np.zeros_like(y_values)
                 y_values = y_values - y_trend_values
 
         else:
@@ -1129,8 +1141,14 @@ class MainWindow(QMainWindow):
                     inverse_incoming_energy_array = 1 / incoming_energy_array
                     y_trend_values = np.polyval(coeffs, inverse_incoming_energy_array)
                 elif parameters["background_fit_type_array"][array_index] == "Gaussian":
-                    gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_fit, y_values_fit)
-                    y_trend_values= self.gaussian(incoming_energy_array, *gaussian_parameters)
+                    try:
+                        if len(x_values_fit) < 4:
+                            raise RuntimeError("Too few data points for Gaussian background fit")
+                        gaussian_parameters, covariance = curve_fit(self.gaussian, x_values_fit, y_values_fit)
+                        y_trend_values= self.gaussian(incoming_energy_array, *gaussian_parameters)
+                    except (RuntimeError, TypeError, ValueError):
+                        print("Gaussian background fit could not be made; skipping background subtraction for this spectrum.")
+                        y_trend_values= np.zeros_like(y_values)
                 y_values = y_values - y_trend_values
 
             if parameters["is_normalize_to_zero_and_one_array"][array_index]:
