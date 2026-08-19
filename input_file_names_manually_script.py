@@ -354,6 +354,12 @@ class MainWindow(QMainWindow):
         hbox_bottom_buttons.setSizeConstraint(QLayout.SetFixedSize)
         return hbox_bottom_buttons
 
+    def closeEvent(self, event):
+        if event.spontaneous():
+            self.parameters["is_program_running"] = False
+            self.finished.emit()
+        event.accept()
+
     def save_and_continue(self):
         parameter_scripts.save_parameters(self.parameters)
         plt.close()

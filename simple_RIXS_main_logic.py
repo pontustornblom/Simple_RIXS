@@ -258,3 +258,5 @@ def main_logic(input_file_project_folder):
     
     if parameters["is_program_running"] == False:
         print("Simple RIXS was cancelled")
+
+    return parameters  

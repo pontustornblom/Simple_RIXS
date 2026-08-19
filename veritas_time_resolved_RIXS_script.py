@@ -572,6 +572,12 @@ class MainWindow(QMainWindow):
         print("Plots updated.")
 
     # ------------------------------------------------------------------
+    def closeEvent(self, event):
+        if event.spontaneous():
+            self.parameters["is_program_running"] = False
+            self.finished.emit()
+        event.accept()
+
     def save_and_continue(self):
         parameter_scripts.save_parameters(self.parameters)
         self._save_treated_data()

@@ -76,7 +76,7 @@ No build or compile step is required. The application is pure Python and runs di
 
 **Note:** If you are reading this file locally (in Notepad, for example), the formatting will not display correctly. The properly formatted version is at https://github.com/pontustornblom/Simple_RIXS
 
-**Step 1.** Copy `Simple_RIXS.py` and rename the copy for your beamtime session, for example `Simple_RIXS_2025_11_Veritas.py`. Keeping one copy per dataset means each session retains its own folder path and settings.
+**Step 1.** Copy the file `Simple_RIXS.py` and rename the copy for your beamtime session, for example `Simple_RIXS_2025_11_Veritas.py`. Keeping one copy per dataset means each session retains its own folder path and settings.
 
 **Step 2.** Open the copy and set the project folder path near the top of the file to where your raw data is stored. Here is an example:
 
@@ -85,7 +85,19 @@ input_file_project_folder = "C:\\Users\\Pontus\\Data\\2025_11_Veritas"
 ```
 This will make the parameters you set during data treatment to apply to this specific dataset, reducing the amount of repetitive work you need to spend to treat all data.
 
-**Step 3.** Run the script (press F5 in VS Code, or `python Simple_RIXS_2025_11_Veritas.py` in a terminal). A GUI window will open and guide you through the rest. Note that some of the options in the drop-down menu might not yet be available.
+**Step 3.** Open a terminal in the folder where you cloned or extracted
+Simple RIXS, then run your renamed copy:
+
+```bash
+cd path\to\Simple_RIXS
+py Simple_RIXS_2025_11_Veritas.py
+```
+
+Or open the folder in VS Code and press F5 with the file open.
+
+Keep your renamed copy in the same folder as the other scripts, the program finds its modules by looking beside itself.
+
+A GUI window will open and guide you through the rest. Note that some of the options in the drop-down menu might not yet be available.
 
 
 ### Workflow
