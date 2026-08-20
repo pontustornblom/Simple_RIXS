@@ -1899,7 +1899,7 @@ class MainWindow(QMainWindow):
             else:
                 iteratable_file_number_array_i0 = [0]
             incoming_energy_array = self.get_incoming_energy_array_veritas(parameters, iteratable_file_number_array)
-            incoming_energy_array = [529.85]
+            #incoming_energy_array = [529.85]
             
             colormap = parameters["plot_colormap_choice"]
 
@@ -1918,7 +1918,7 @@ class MainWindow(QMainWindow):
             else:
                 iteratable_file_number_array_i0 = [0]
             incoming_energy_array = self.get_incoming_energy_array(parameters, iteratable_file_number_array)
-            incoming_energy_array = [529.85]
+            #incoming_energy_array = [529.85]
             
             colormap = parameters["plot_colormap_choice"]
 
