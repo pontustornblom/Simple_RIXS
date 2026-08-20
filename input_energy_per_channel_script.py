@@ -20,6 +20,35 @@ import iteratable_number_to_int_script
 import iteratable_number_to_float_script
 import find_elastic_peak_maximum_script
 
+
+
+class DropLineEdit(QLineEdit):
+    """QLineEdit that accepts a dropped file and inserts its base name (with extension)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
+
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if not urls:
+            return
+        self.setText(os.path.basename(urls[0].toLocalFile()))
+        event.acceptProposedAction()
+        self.editingFinished.emit()
+
 def run_main_gui(parameters):
     # Check if an application instance already exists.
     app = QApplication.instance()
@@ -112,7 +141,10 @@ class MainWindow(QMainWindow):
                 condition = True
                 while condition:
                     try:
-                        item = QLineEdit(self.parameters[array_key][array_index])
+                        if array_key == "input_complete_file_name_array":
+                            item = DropLineEdit(self.parameters[array_key][array_index])
+                        else:
+                            item = QLineEdit(self.parameters[array_key][array_index])
                         condition = False
                     except (IndexError):
                         self.parameters[array_key].append(self.parameters[array_key][0])

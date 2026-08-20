@@ -23,6 +23,35 @@ import iteratable_number_to_int_script
 import find_elastic_peak_maximum_script
 import create_complete_file_location_view_roots_or_txt_script
 
+
+
+class DropLineEdit(QLineEdit):
+    """QLineEdit that accepts a dropped file and inserts its base name (with extension)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
+
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if not urls:
+            return
+        self.setText(os.path.basename(urls[0].toLocalFile()))
+        event.acceptProposedAction()
+        self.editingFinished.emit()
+
 def run_main_gui(parameters):
     # Check if an application instance already exists.
     app = QApplication.instance()
@@ -98,7 +127,7 @@ class MainWindow(QMainWindow):
         item_label = QLabel(item_label_text)
         if item_type =="q_line_edit":
             hbox.addWidget(item_label)
-            item = QLineEdit(self.parameters[key])
+            item = DropLineEdit(self.parameters[key]) if key == "input_complete_file_name" else QLineEdit(self.parameters[key])
             hbox.addWidget(item)
             if key != "input_file_project_folder" and key != "input_file_raw_data_folder":
                 item.editingFinished.connect(lambda item=item, key=key: self.validate_input(item, key))
@@ -141,7 +170,7 @@ class MainWindow(QMainWindow):
                 if item.isChecked():
                     self.parameters[key] = True
                     if key== "is_view_roots_or_input_txt":
-                        self.vbox.insertLayout(self.vbox.count()-1,self.create_gui_item("input_complete_file_name", "Input example file name to view roots/txt ", "q_line_edit", [""]))                
+                        self.vbox.insertLayout(self.vbox.count()-1,self.create_gui_item("input_complete_file_name", "Input example file name to view roots/txt \n(You can drop the file into the text box)", "q_line_edit", [""]))                
                 else:
                     self.parameters[key] = False
     

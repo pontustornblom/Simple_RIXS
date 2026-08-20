@@ -20,6 +20,35 @@ import create_complete_file_location_view_roots_or_txt_script
 
 
 
+
+
+class DropLineEdit(QLineEdit):
+    """QLineEdit that accepts a dropped file and inserts its base name (with extension)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
+
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if not urls:
+            return
+        self.setText(os.path.basename(urls[0].toLocalFile()))
+        event.acceptProposedAction()
+        self.editingFinished.emit()
+
 def run_main_gui(parameters):
     # Check if an application instance already exists.
     app = QApplication.instance()
@@ -93,7 +122,7 @@ class MainWindow(QMainWindow):
             #self.vbox.addLayout(self.create_gui_item("is_x_values_available_in_file", "Would you like to ignore the given x-axis and create your own x-axis based on the elastic peaks of this spectra?", "q_check_box", [""]))
 
         elif self.parameters["plot_type"][:3]=="XAS":
-            self.vbox.addLayout(self.create_gui_item("input_complete_file_name", "Input complete file name of the raw data: ", "q_line_edit", [""]))
+            self.vbox.addLayout(self.create_gui_item("input_complete_file_name", "Input complete file name of the raw data: \n(You can drop the file into the text box)", "q_line_edit", [""]))
 
         self.vbox.addLayout(self.create_gui_item("complete_i0_file_location", "Input the file locaion for the I0 file: ", "q_line_edit", [""]))
         self.vbox.addLayout(self.create_gui_item("input_file_iteratable_file_number_start_2", "First iteratable file number for the i0 values (The number before _1.dat): ", "q_line_edit", [""]))
@@ -136,7 +165,10 @@ class MainWindow(QMainWindow):
                 condition = True
                 while condition:
                     try:
-                        item = QLineEdit(self.parameters[array_key][array_index])
+                        if array_key == "input_complete_file_name_array":
+                            item = DropLineEdit(self.parameters[array_key][array_index])
+                        else:
+                            item = QLineEdit(self.parameters[array_key][array_index])
                         condition = False
                     except (IndexError):
                         self.parameters[array_key].append(self.parameters[array_key][0])
@@ -158,7 +190,7 @@ class MainWindow(QMainWindow):
                 item.editingFinished.connect(lambda item=item, key=key, hbox=hbox: self.update_end_of_file_name(item, key, hbox))
             elif key== "input_complete_file_name":
                 self.parameters, complete_file_location = create_complete_file_location_view_roots_or_txt_script.create_complete_file_location_view_roots_or_txt(self.parameters, False, "")
-                item = QLineEdit(self.parameters[key])
+                item = DropLineEdit(self.parameters[key])
                 hbox.addWidget(item)
                 item.editingFinished.connect(lambda item=item, key=key, hbox=hbox: self.update_end_of_file_name(item, key, hbox))
             else:
@@ -214,7 +246,7 @@ class MainWindow(QMainWindow):
                 if item.isChecked():
                     self.parameters[key] = True
                     if key== "is_view_roots_or_input_txt":
-                        self.vbox.insertLayout(self.vbox.count()-1,self.create_gui_item("input_complete_file_name", "Input example file name to view roots/txt ", "q_line_edit", [""]))                
+                        self.vbox.insertLayout(self.vbox.count()-1,self.create_gui_item("input_complete_file_name", "Input example file name to view roots/txt \n(You can drop the file into the text box)", "q_line_edit", [""]))                
                 else:
                     self.parameters[key] = False
     
@@ -228,7 +260,7 @@ class MainWindow(QMainWindow):
             if key== "input_file_text_end_of_name":
                 self.vbox.insertLayout(self.vbox.indexOf(hbox),self.create_gui_item("input_file_text_end_of_name", "Text at the end of the file: ", "q_line_edit", [""]))
             elif  key== "input_complete_file_name":
-                self.vbox.insertLayout(self.vbox.indexOf(hbox),self.create_gui_item("input_complete_file_name", "Input complete file name of the raw data: ", "q_line_edit", [""]))
+                self.vbox.insertLayout(self.vbox.indexOf(hbox),self.create_gui_item("input_complete_file_name", "Input complete file name of the raw data: \n(You can drop the file into the text box)", "q_line_edit", [""]))
 
         
     def validate_input(self, item, key):

@@ -18,6 +18,35 @@ import parameter_scripts
 import json
 
 
+
+
+class DropLineEdit(QLineEdit):
+    """QLineEdit that accepts a dropped file and inserts its base name (with extension)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
+
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if not urls:
+            return
+        self.setText(os.path.basename(urls[0].toLocalFile()))
+        event.acceptProposedAction()
+        self.editingFinished.emit()
+
 def run_main_gui(parameters):
     app = QApplication.instance()
     if app is None:
