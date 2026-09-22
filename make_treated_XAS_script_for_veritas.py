@@ -192,7 +192,7 @@ class MainWindow(QMainWindow):
 
 
         #################################### From dynamic
-        self.vbox.addLayout(self.create_gui_item("is_invert_the_plot_array_" + str(0), "Would you like to invert this plot? ", "q_check_box", [""]))
+        self.vbox.addLayout(self.create_gui_item("is_invert_the_plot_array_" + str(0), "Would you like to invert this plot? \n(This computes iPFY as 1/intensity, then normalizes so the low energy side is 0 and the high energy side is 1)", "q_check_box", [""]))
 
         self.vbox.addLayout(self.create_gui_item("number_of_functions_to_fit_background_xas", "How many functions would you like to fit to the spectra to subtract the background? \n(Choose 0 for no background fit. Selecting 1 or more always adds a constant term to the fit)", "q_line_edit", [""]))
         if int(self.parameters["number_of_functions_to_fit_background_xas"]) > 0:
@@ -209,7 +209,7 @@ class MainWindow(QMainWindow):
             #self.is_subtract_fitted_background_displayed= True 
 
         
-        self.vbox.addLayout(self.create_gui_item("is_normalize_to_zero_and_one_array_" + str(0), "Would you like to normalize the data by setting the lowest intensity \nto zero and the end intensity to one for this region? \n(This normalization will happen if the plot is inverted)", "q_check_box", [""]))
+        self.vbox.addLayout(self.create_gui_item("is_normalize_to_zero_and_one_array_" + str(0), "Would you like to normalize the data by setting the lowest intensity \nto zero and the end intensity to one for this region? \n(This normalization will happen automatically if the plot is inverted, using 1/intensity instead)", "q_check_box", [""]))
 
         self.vbox.addLayout(self.create_gui_item("approximate_energy_for_normalization_to_one_array_" + str(0), "Incoming energy of where to normalize the intensity to 1 for this region: ", "q_line_edit", [""]))
         self.vbox.addLayout(self.create_gui_item("energy_above_and_below_normalization_to_one_array_" + str(0), "How many eV above and below to average the intensity over to set the intensity to 1? ", "q_line_edit", [""]))
@@ -608,9 +608,9 @@ class MainWindow(QMainWindow):
                 
                 self.vbox.addLayout(self.create_gui_item("", "-------------- Inputs for file " + self.parameters["plot_legend_names_array"][file_name_index] +  " in PFY region " + self.parameters["pfy_region_name_array"][pfy_region] + " --------------" , "q_text_label", [""]))
 
-                self.vbox.addLayout(self.create_gui_item("is_invert_the_plot_array_" + str(array_index), "Would you like to invert this plot? ", "q_check_box", [""]))
+                self.vbox.addLayout(self.create_gui_item("is_invert_the_plot_array_" + str(array_index), "Would you like to invert this plot? \n(This computes iPFY as 1/intensity, then normalizes so the low energy side is 0 and the high energy side is 1)", "q_check_box", [""]))
 
-                self.vbox.addLayout(self.create_gui_item("is_normalize_to_zero_and_one_array_" + str(array_index), "Would you like to normalize the data by setting the lowest intensity \nto zero and the end intensity to one for this region? \n(This normalization will happen if the plot is inverted)", "q_check_box", [""]))
+                self.vbox.addLayout(self.create_gui_item("is_normalize_to_zero_and_one_array_" + str(array_index), "Would you like to normalize the data by setting the lowest intensity \nto zero and the end intensity to one for this region? \n(This normalization will happen automatically if the plot is inverted, using 1/intensity instead)", "q_check_box", [""]))
 
                 self.vbox.addLayout(self.create_gui_item("approximate_energy_for_normalization_to_one_array_" + str(array_index), "Incoming energy of where to normalize the intensity to 1 for this region: ", "q_line_edit", [""]))
                 self.vbox.addLayout(self.create_gui_item("energy_above_and_below_normalization_to_one_array_" + str(array_index), "How many eV above and below to average the intensity over to set the intensity to 1? ", "q_line_edit", [""]))
@@ -1061,6 +1061,11 @@ class MainWindow(QMainWindow):
 
         array_index = 0
         if parameters["is_invert_the_plot_array"][array_index]== True:
+            #iPFY: invert by taking 1/intensity first. The raw intensity is largest at the
+            #low energy side and dips at the edge, so after inversion the low energy side
+            #has the smallest value, and the zero reference is found with np.min, same as
+            #the non-inverted case.
+            y_values = 1 / np.asarray(y_values)
             if parameters["is_approximate_energy_for_normalization_to_zero_array"][array_index]:
                 index_start = np.abs(incoming_energy_array - (float(parameters["approximate_energy_for_normalization_to_zero_array"][array_index]) - float(parameters["energy_above_and_below_finding_min_intensity_array"][array_index]))).argmin()
                 index_end = np.abs(incoming_energy_array - (float(parameters["approximate_energy_for_normalization_to_zero_array"][array_index]) + float(parameters["energy_above_and_below_finding_min_intensity_array"][array_index]))).argmin()
@@ -1068,10 +1073,9 @@ class MainWindow(QMainWindow):
                 if index_start == index_end:
                     y_min= y_values[index_start]
                 else:
-                    #using np.max to get y_min to get the plot inverted.
-                    y_min = np.max(y_values[index_start: index_end + 1])
+                    y_min = np.min(y_values[index_start: index_end + 1])
             else:
-                y_min= np.max(y_values)
+                y_min= np.min(y_values)
             array_index_y_min = np.abs(y_values - y_min).argmin()
             #index_start = array_index_y_min - np.abs(incoming_energy_array - (incoming_energy_array[array_index_y_min] - float(parameters["energy_above_and_below_normalization_to_zero"]))).argmin()
             #index_end = array_index_y_min + np.abs(incoming_energy_array - (incoming_energy_array[array_index_y_min] + float(parameters["energy_above_and_below_normalization_to_zero"]))).argmin()
